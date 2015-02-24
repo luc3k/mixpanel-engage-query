@@ -108,10 +108,15 @@ function processResults(data) {
         if (properties.length === 0) {
             // output all
             entry = data.results[i].$properties;
+			entry['$distinct_id'] = data.results[i].$distinct_id;
         } else {
             // only include given properties
             properties.forEach(function(p) {
-                entry[p] = data.results[i].$properties[p] || '';
+				if (p == '$distinct_id') {
+					entry['$distinct_id'] = data.results[i].$distinct_id;					
+				} else {
+					entry[p] = data.results[i].$properties[p] || '';
+				}
             });
         }
 
