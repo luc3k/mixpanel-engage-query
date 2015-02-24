@@ -122,19 +122,20 @@ function queryEngageApi(params) {
 							var entry_temp = {};
 							entry_temp.alias = entries_d_i[n].$distinct_id;
 							entry_temp.distinct_id = entries_d[i].$distinct_id;
-							//console.log(JSON.stringify(entry_temp));
-							entries_t_a.push(entry_temp);
+							if (entries_d_i[n].role == 'parent') {
+								entries_t_a.push(entry_temp);
+							}
 						}
 					}
 				}
 				if (argv.mixpanel !== 'undefined') {
 					if (argv.mixpanel.length !== 0) {
 						var Mixpanel = require('mixpanel');
-						//var mixpanel = Mixpanel.init(argv.mixpanel);
+						var mixpanel = Mixpanel.init(argv.mixpanel);
 						len = entries_t_a.length;
 						for (i = 0; i < len; i ++) {
 							console.log(entries_t_a[i].alias + ' ' + entries_t_a[i].distinct_id);
-							//mixpanel.alias("distinct_id", "your_alias");
+							mixpanel.alias(entries_t_a[i].distinct_id, entries_t_a[i].alias);
 						}
 					}
 				}
@@ -171,6 +172,12 @@ function processResults(data) {
 				}
             });
         }
+		
+		if (argv.iosifa === "yes") {
+			if (data.results[i].$properties['Role'] == 'parent') {
+				entry['role'] = data.results[i].$properties['Role'];
+			}
+		}
 		entries.push(entry);
 
         // skip if object is empty
