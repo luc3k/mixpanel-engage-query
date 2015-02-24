@@ -45,6 +45,15 @@ var argv = require('optimist')
         alias: 'required',
         describe: "Skip entries where the required properties are not set (e.g. '$email $first_name')."
     })
+    .options('i', {
+        alias: 'iosifa',
+		default: 'no',
+        describe: "Run ios_ifa comparision if set yo yes, default no."
+    })
+    .options('m', {
+        alias: 'mixpanel',
+        describe: "MixPanel token"
+    })
     .argv;
 
 // get properties to output
@@ -52,6 +61,10 @@ var properties = typeof argv.properties === "string" ? argv.properties.split(" "
 
 // get required properties
 var required = typeof argv.required === "string" ? argv.required.split(" ") : [];
+
+// entires
+
+var entries = [];
 
 // do the stuff!
 queryEngageApi({
@@ -87,6 +100,45 @@ function queryEngageApi(params) {
             params.session_id = data.session_id;
 
             queryEngageApi(params);
+        } else {
+        	if (argv.iosifa === "yes") {
+				var i, n, entry, len2, len = entries.length;
+				var entries_d_i = [];
+				var entries_d = [];
+				var entries_t_a = [];
+				for (i = 0; i < len; i ++) {
+					entry = entries[i];
+					if (entry.$distinct_id.length > 0 && entry.$ios_ifa.length > 0) {
+						entries_d_i.push(entry);
+					} else {
+						entries_d.push(entry);
+					}
+				}
+				len = entries_d.length;
+				len2 = entries_d_i.length;
+				for (i = 0; i < len; i ++) {
+					for (n = 0; n < len2; n ++) {
+						if (entries_d[i].$distinct_id === entries_d_i[n].$ios_ifa) {
+							var entry_temp = {};
+							entry_temp.alias = entries_d_i[n].$distinct_id;
+							entry_temp.distinct_id = entries_d[i].$distinct_id;
+							//console.log(JSON.stringify(entry_temp));
+							entries_t_a.push(entry_temp);
+						}
+					}
+				}
+				if (argv.mixpanel !== 'undefined') {
+					if (argv.mixpanel.length !== 0) {
+						var Mixpanel = require('mixpanel');
+						//var mixpanel = Mixpanel.init(argv.mixpanel);
+						len = entries_t_a.length;
+						for (i = 0; i < len; i ++) {
+							console.log(entries_t_a[i].alias + ' ' + entries_t_a[i].distinct_id);
+							//mixpanel.alias("distinct_id", "your_alias");
+						}
+					}
+				}
+			}
         }
     });
 }
@@ -119,6 +171,7 @@ function processResults(data) {
 				}
             });
         }
+		entries.push(entry);
 
         // skip if object is empty
         if (Object.keys(entry).length === 0) {
@@ -131,10 +184,14 @@ function processResults(data) {
             Object.keys(entry).forEach(function(k) {
                 csv.push(entry[k]);
             });
-            console.log(csv.join(";"));
+			if (argv.iosifa === "no") {
+				console.log(csv.join(";"));
+			}
         } else {
             // json
-            console.log(JSON.stringify(entry));
+			if (argv.iosifa === "no") {
+            	console.log(JSON.stringify(entry));
+			}
         }
     }
 }
